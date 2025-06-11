@@ -1,0 +1,37 @@
+date,event,type,magnitude
+2008-09-16,Emergency rate cut,rate_cut,-0.5
+2008-10-08,Coordinated rate cut,rate_cut,-0.5
+2008-10-29,Rate cut to 1%,rate_cut,-0.5
+2008-12-16,Rate cut to zero,rate_cut,-0.75
+2008-11-25,QE1 announcement,qe_announcement,1.0
+2010-11-03,QE2 announcement,qe_announcement,1.0
+2012-09-13,QE3 announcement,qe_announcement,1.0
+2013-05-22,Taper tantrum (Bernanke speech),taper_hint,-1.0
+2013-12-18,Taper announcement,taper_announcement,-1.0
+2014-10-29,QE3 ends,qe_end,-1.0
+2015-12-16,First rate hike post-crisis,rate_hike,0.25
+2016-12-14,Second rate hike,rate_hike,0.25
+2017-03-15,Third rate hike,rate_hike,0.25
+2017-06-14,Fourth rate hike,rate_hike,0.25
+2017-12-13,Fifth rate hike,rate_hike,0.25
+2018-03-21,Powell first hike,rate_hike,0.25
+2018-06-13,June rate hike,rate_hike,0.25
+2018-09-26,September rate hike,rate_hike,0.25
+2018-12-19,December rate hike,rate_hike,0.25
+2019-07-31,First rate cut since crisis,rate_cut,-0.25
+2019-09-18,September rate cut,rate_cut,-0.25
+2019-10-30,October rate cut,rate_cut,-0.25
+2020-03-03,Emergency rate cut,rate_cut,-0.5
+2020-03-15,Emergency rate cut to zero,rate_cut,-1.0
+2020-03-23,Unlimited QE announcement,qe_announcement,2.0
+2022-03-16,First post-COVID rate hike,rate_hike,0.25
+2022-05-04,May rate hike,rate_hike,0.5
+2022-06-15,June rate hike,rate_hike,0.75
+2022-07-27,July rate hike,rate_hike,0.75
+2022-09-21,September rate hike,rate_hike,0.75
+2022-11-02,November rate hike,rate_hike,0.75
+2022-12-14,December rate hike,rate_hike,0.5
+2023-02-01,February rate hike,rate_hike,0.25
+2023-03-22,March rate hike,rate_hike,0.25
+2023-05-03,May rate hike,rate_hike,0.25
+2023-07-26,July rate hike,rate_hike,0.25

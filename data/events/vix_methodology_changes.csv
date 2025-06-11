@@ -1,0 +1,9 @@
+date,event,type,impact
+1993-01-01,VIX launch (original methodology),methodology_change,new_product
+2003-09-22,New VIX methodology (model-free),methodology_change,calculation_change
+2004-03-26,VIX futures launch,product_launch,derivatives_trading
+2009-01-30,VIX options launch,product_launch,derivatives_trading
+2009-10-19,VVIX launch,product_launch,vol_of_vol
+2012-05-07,VIX9D launch,product_launch,short_term_vol
+2014-02-05,XIV/VXX rebalancing rules change,etf_rule_change,trading_structure
+2018-02-05,XIV termination event,product_termination,vol_explosion

@@ -1,0 +1,22 @@
+date,event,type,sector
+2008-09-15,Lehman Brothers collapse,financial_crisis,banking
+2008-09-16,AIG bailout,bailout,insurance
+2008-10-03,TARP signed,policy_response,banking
+2010-05-02,Greece bailout,sovereign_crisis,sovereign
+2011-08-05,US credit downgrade,rating_change,sovereign
+2012-07-26,"Draghi ""whatever it takes""",central_bank_speech,currency
+2010-05-06,Flash crash,market_structure,equity
+2015-08-24,China devaluation crash,currency_crisis,emerging_markets
+2016-06-23,Brexit referendum,political_shock,currency
+2016-11-08,Trump election,election,political
+2020-11-07,Biden election called,election,political
+2018-03-22,First China tariffs,trade_war,international
+2019-05-05,Tariff escalation tweet,trade_war,international
+2020-01-15,Phase 1 trade deal,trade_resolution,international
+2020-01-30,WHO declares emergency,pandemic,health
+2020-03-11,WHO declares pandemic,pandemic,health
+2020-03-16,US lockdowns begin,lockdown,health
+2020-11-09,Pfizer vaccine news,medical_breakthrough,health
+2021-01-06,Capitol riots,political_shock,political
+2022-02-24,Russia invades Ukraine,geopolitical_shock,geopolitical
+2023-03-10,Silicon Valley Bank collapse,banking_crisis,banking
