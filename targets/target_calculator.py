@@ -111,24 +111,15 @@ class EnhancedVolatilityTargetCalculator:
         realized_vol = pd.Series(index=returns.index, dtype=float)
         
         for i in range(len(returns)):
-            if i < min_periods:
-                # For very early periods, use expanding window starting from first available
-                window_returns = returns.iloc[:i+1]
-                if len(window_returns) > 0:
-                    vol = window_returns.std() * np.sqrt(252) * 100
-                    realized_vol.iloc[i] = vol if not pd.isna(vol) else 20.0  # Default vol if needed
-                else:
-                    realized_vol.iloc[i] = 20.0  # Default volatility
-            elif i < target_window:
-                # Use expanding window until we reach target window size
-                window_returns = returns.iloc[:i+1]
-                vol = window_returns.std() * np.sqrt(252) * 100
-                realized_vol.iloc[i] = vol if not pd.isna(vol) else realized_vol.iloc[i-1]
+            if i == 0:
+                realized_vol.iloc[i] = 20.0  # Default for first day
             else:
-                # Use rolling window
-                window_returns = returns.iloc[i-target_window+1:i+1]
-                vol = window_returns.std() * np.sqrt(252) * 100
-                realized_vol.iloc[i] = vol if not pd.isna(vol) else realized_vol.iloc[i-1]
+                window_returns = returns.iloc[:i+1]  # Expanding window
+                if len(window_returns) >= 2:
+                    vol = window_returns.std() * np.sqrt(252) * 100
+                    realized_vol.iloc[i] = vol if (not pd.isna(vol) and vol > 0) else 20.0
+                else:
+                    realized_vol.iloc[i] = 20.0
         
         # Final safety check - ensure no NaNs
         if realized_vol.isnull().any():
