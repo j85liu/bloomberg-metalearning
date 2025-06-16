@@ -15,12 +15,12 @@ Meta-learning suitability: 🟠 Moderate (score: 4.1/10)
 📊 REALIZED IMPLIED SPREAD
 ------------------------------------------------------------
 Observations: 4,081
-Mean: 8.812, Std: 9.525
-Range: [-45.881, 48.000]
-Skewness: 0.002, Kurtosis: 2.881
-Autocorrelations: 1d=0.980, 5d=0.925, 20d=0.746
-Regime spread: 3.805 (max-min regime means)
-Meta-learning suitability: 🟡 Good (score: 5.9/10)
+Mean: 5.881, Std: 9.019
+Range: [-9.680, 69.192]
+Skewness: 1.227, Kurtosis: 3.136
+Autocorrelations: 1d=0.724, 5d=0.520, 20d=0.349
+Regime spread: 8.806 (max-min regime means)
+Meta-learning suitability: 🟠 Moderate (score: 4.2/10)
 
 📊 CROSS ASSET CORRELATION
 ------------------------------------------------------------
@@ -76,7 +76,6 @@ Regime distribution:
 🤖 META-LEARNING FRAMEWORK RECOMMENDATIONS
 ------------------------------------------------------------
 🎯 Recommended primary targets for meta-learning:
-  1. Realized Implied Spread (score: 5.9/10)
   1. Vol Of Vol Ratio (score: 5.3/10)
 
 💡 Model selection strategy:
