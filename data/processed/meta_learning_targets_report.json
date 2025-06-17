@@ -1,0 +1,102 @@
+{
+  "calculation_summary": {
+    "targets_calculated": [
+      "VIX_TERM_STRUCTURE",
+      "REALIZED_VS_IMPLIED",
+      "CROSS_ASSET_CORRELATION",
+      "VOLATILITY_DISPERSION"
+    ],
+    "targets_failed": [],
+    "data_issues": {
+      "VOL_OF_VOL_RATIO": "Unusual Vol-of-Vol ratios: range [2.054, 10.317], median=5.916"
+    },
+    "buffer_zones": {
+      "realized_vol_30d": {
+        "first_valid_date": "2015-06-23T00:00:00",
+        "buffer_period_days": 19
+      },
+      "REALIZED_VS_IMPLIED": {
+        "buffer_days": 19,
+        "first_valid_date": "2015-06-23T00:00:00",
+        "total_null_values": 19
+      },
+      "CROSS_ASSET_CORRELATION": {
+        "buffer_days": 19,
+        "first_valid_date": "2015-06-23T00:00:00",
+        "total_null_values": 19
+      }
+    },
+    "null_counts": {
+      "TARGET_VIX_TERM_STRUCTURE": 0,
+      "TARGET_REALIZED_VS_IMPLIED": 19,
+      "TARGET_CROSS_ASSET_CORRELATION": 19,
+      "TARGET_VOLATILITY_DISPERSION": 0,
+      "TARGET_VOL_OF_VOL_RATIO": 0
+    }
+  },
+  "target_statistics": {
+    "TARGET_VIX_TERM_STRUCTURE": {
+      "count": 2505,
+      "null_count": 0,
+      "mean": 1.9713493013972054,
+      "std": 1.8272194958479675,
+      "min": -18.229999999999997,
+      "max": 6.66,
+      "median": 2.1900000000000013,
+      "q25": 1.3099999999999987,
+      "q75": 2.9000000000000004
+    },
+    "TARGET_REALIZED_VS_IMPLIED": {
+      "count": 2486,
+      "null_count": 19,
+      "mean": 3.350199143206473,
+      "std": 5.848153318759578,
+      "min": -45.88116938583405,
+      "max": 25.642457243829448,
+      "median": 3.7848886611418386,
+      "q25": 1.43836883674765,
+      "q75": 6.037306476558392
+    },
+    "TARGET_CROSS_ASSET_CORRELATION": {
+      "count": 2486,
+      "null_count": 19,
+      "mean": 0.3994327198929211,
+      "std": 0.36901967631687804,
+      "min": -0.7848490674860634,
+      "max": 0.9752913213445138,
+      "median": 0.45679823873818615,
+      "q25": 0.14328959033956293,
+      "q75": 0.7189200459530214
+    },
+    "TARGET_VOLATILITY_DISPERSION": {
+      "count": 2505,
+      "null_count": 0,
+      "mean": -10.020375249500999,
+      "std": 3.471341531213938,
+      "min": -22.196666666666665,
+      "max": 4.573333333333345,
+      "median": -9.656666666666666,
+      "q25": -12.379999999999999,
+      "q75": -7.696666666666667
+    },
+    "TARGET_VOL_OF_VOL_RATIO": {
+      "count": 2505,
+      "null_count": 0,
+      "mean": 5.862742909453256,
+      "std": 1.4417979087480859,
+      "min": 2.05445872532132,
+      "max": 10.316939890710383,
+      "median": 5.916044776119404,
+      "q25": 4.88214971209213,
+      "q75": 6.707063197026022
+    }
+  },
+  "dataset_info": {
+    "total_rows": 2505,
+    "date_range": {
+      "start": "2015-05-27T00:00:00",
+      "end": "2024-12-31T00:00:00"
+    },
+    "targets_calculated": 5
+  }
+}
