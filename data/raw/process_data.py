@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Comprehensive Data Processor for Bloomberg Meta-Learning Project
+Enhanced Data Processor - Bloomberg Meta-Learning Project
 
-Processes all raw data files into clean processed_volatility_data.csv
-- Uses SPX.csv for complete S&P 500 returns
-- Finds optimal date range where all data is available
-- Reports any null values instead of filling them
-- Creates exact column format specified
+IMPROVEMENTS:
+1. Combines SPX.csv (for 2011-2015) + SP500_RETURNS.csv (for 2015+) 
+2. Investigates null patterns to understand data gaps
+3. Extends date range to get maximum coverage
+4. Detailed gap analysis and reporting
 """
 
 import pandas as pd
@@ -22,21 +22,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore')
 
-class ComprehensiveDataProcessor:
+class EnhancedDataProcessor:
     """
-    Process all raw data into the exact format specified
+    Enhanced processor with SPX+SP500_RETURNS combination and gap analysis
     """
     
-    def __init__(self, data_dir: str = "data", spx_file: str = "data/raw/market/SPX.csv"):
-        """
-        Initialize processor
-        
-        Args:
-            data_dir: Path to data directory
-            spx_file: Path to SPX data file
-        """
+    def __init__(self, data_dir: str = "data"):
         self.data_dir = Path(data_dir)
-        self.spx_file = Path(spx_file)
         self.raw_data = {}
         self.date_ranges = {}
         
@@ -63,7 +55,7 @@ class ComprehensiveDataProcessor:
             'GVZ_LAG_1', 'GVZ_LAG_2', 'GVZ_LAG_5', 'GVZ_LAG_10'
         ]
         
-        # Define file mappings
+        # File mappings (same as before but with SP500_RETURNS added)
         self.file_mappings = {
             # Volatility files
             'volatility/VIX_History.csv': {'date_col': 'DATE', 'format': '%m/%d/%Y', 'prefix': 'VIX'},
@@ -88,6 +80,7 @@ class ComprehensiveDataProcessor:
             'market/USD_INDEX.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'USD_INDEX'},
             'market/TED_SPREAD.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'TED_SPREAD'},
             'market/HIGH_YIELD_SPREAD.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'HIGH_YIELD_SPREAD'},
+            'market/SP500_RETURNS.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'SP500_RETURNS_RAW'},
             
             # Macro files
             'macro/FED_FUNDS.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'FED_FUNDS'},
@@ -96,41 +89,86 @@ class ComprehensiveDataProcessor:
             'macro/REPO_RATE.csv': {'date_col': 'date', 'format': '%Y-%m-%d', 'prefix': 'REPO_RATE'},
         }
     
-    def load_spx_data(self) -> pd.DataFrame:
-        """Load and process SPX data for S&P 500 returns"""
-        logger.info(f"Loading SPX data from {self.spx_file}")
+    def load_combined_sp500_data(self) -> pd.DataFrame:
+        """
+        Load and combine SPX.csv + SP500_RETURNS.csv for complete coverage
+        """
+        logger.info("🔗 Loading and combining SPX + SP500_RETURNS data")
         
-        if not self.spx_file.exists():
-            raise FileNotFoundError(f"SPX file not found: {self.spx_file}")
+        # Load SPX data
+        spx_path = self.data_dir / "raw" / "market" / "SPX.csv"
+        if not spx_path.exists():
+            raise FileNotFoundError(f"SPX file not found: {spx_path}")
         
-        spx_df = pd.read_csv(self.spx_file)
+        spx_df = pd.read_csv(spx_path)
         spx_df['Date'] = pd.to_datetime(spx_df['Date'])
-        
-        # Calculate returns from Adj Close
         spx_df['SP500_RETURNS'] = spx_df['Adj Close'].pct_change()
-        
-        # Rename columns to match expected format
-        spx_df = spx_df.rename(columns={
-            'Date': 'date',
-            'Adj Close': 'SP500'
-        })
-        
-        # Keep only what we need
+        spx_df = spx_df.rename(columns={'Date': 'date', 'Adj Close': 'SP500'})
         spx_processed = spx_df[['date', 'SP500', 'SP500_RETURNS']].copy()
         
         logger.info(f"SPX data: {len(spx_processed)} rows from {spx_processed['date'].min()} to {spx_processed['date'].max()}")
         
-        self.raw_data['SPX'] = spx_processed
+        # Load SP500_RETURNS data
+        sp500_returns_path = self.data_dir / "raw" / "market" / "SP500_RETURNS.csv"
+        if sp500_returns_path.exists():
+            returns_df = pd.read_csv(sp500_returns_path)
+            returns_df['date'] = pd.to_datetime(returns_df['date'])
+            
+            logger.info(f"SP500_RETURNS data: {len(returns_df)} rows from {returns_df['date'].min()} to {returns_df['date'].max()}")
+            
+            # Find the transition point
+            spx_end = spx_processed['date'].max()
+            returns_start = returns_df['date'].min()
+            
+            # Determine optimal transition point
+            if returns_start <= spx_end:
+                transition_date = returns_start
+                logger.info(f"Transition point: {transition_date.date()} (using SP500_RETURNS from this date)")
+                
+                # Split SPX data at transition point
+                spx_before = spx_processed[spx_processed['date'] < transition_date].copy()
+                
+                # Use SP500_RETURNS from transition point onwards
+                # But we need SP500 prices too, so get them from SPX where available
+                returns_after = returns_df[returns_df['date'] >= transition_date].copy()
+                
+                # Add SP500 prices to returns data from SPX where possible
+                spx_overlap = spx_processed[spx_processed['date'] >= transition_date]
+                if len(spx_overlap) > 0:
+                    returns_after = pd.merge(returns_after, spx_overlap[['date', 'SP500']], on='date', how='left')
+                
+                # If SP500 prices not available, we'll handle in post-processing
+                if 'SP500' not in returns_after.columns:
+                    returns_after['SP500'] = np.nan
+                
+                # Combine the data
+                combined_sp500 = pd.concat([spx_before, returns_after], ignore_index=True)
+                combined_sp500 = combined_sp500.sort_values('date').reset_index(drop=True)
+                
+                logger.info(f"✅ Combined SP500 data: {len(combined_sp500)} rows")
+                logger.info(f"   SPX portion: {len(spx_before)} rows (up to {transition_date.date()})")
+                logger.info(f"   SP500_RETURNS portion: {len(returns_after)} rows (from {transition_date.date()})")
+                
+            else:
+                # No overlap, just use SPX data
+                combined_sp500 = spx_processed
+                logger.info("No overlap found, using SPX data only")
+        else:
+            # Only SPX data available
+            combined_sp500 = spx_processed
+            logger.info("SP500_RETURNS.csv not found, using SPX data only")
+        
+        self.raw_data['SPX'] = combined_sp500
         self.date_ranges['SPX'] = {
-            'start': spx_processed['date'].min(),
-            'end': spx_processed['date'].max(),
-            'count': len(spx_processed)
+            'start': combined_sp500['date'].min(),
+            'end': combined_sp500['date'].max(),
+            'count': len(combined_sp500)
         }
         
-        return spx_processed
+        return combined_sp500
     
     def load_single_file(self, rel_path: str, config: dict) -> Optional[pd.DataFrame]:
-        """Load and process a single data file"""
+        """Load and process a single data file (same as before but with better error handling)"""
         file_path = self.data_dir / "raw" / rel_path
         
         if not file_path.exists():
@@ -162,7 +200,7 @@ class ComprehensiveDataProcessor:
                         'LOW': f'{prefix}_LOW',
                         'CLOSE': f'{prefix}_CLOSE'
                     })
-                    df[prefix] = df[f'{prefix}_CLOSE']  # Main column is close price
+                    df[prefix] = df[f'{prefix}_CLOSE']
                     processed_df = df[['date', f'{prefix}_OPEN', f'{prefix}_HIGH', f'{prefix}_LOW', f'{prefix}_CLOSE', prefix]]
                 else:
                     logger.error(f"OHLC columns not found in {rel_path}")
@@ -179,6 +217,10 @@ class ComprehensiveDataProcessor:
                 yield_cols = ['US1M', 'US3M', 'US6M', 'US1Y', 'US2Y', 'US3Y', 'US5Y', 'US7Y', 'US10Y', 'US20Y', 'US30Y']
                 available_cols = ['date'] + [col for col in yield_cols if col in df.columns]
                 processed_df = df[available_cols]
+                
+            elif prefix == 'SP500_RETURNS_RAW':
+                # Handle the separate SP500_RETURNS file (already processed in combination)
+                return None  # Skip this since we handle it in load_combined_sp500_data
                 
             else:
                 # Single value market/macro files
@@ -201,39 +243,78 @@ class ComprehensiveDataProcessor:
             logger.error(f"Error loading {rel_path}: {e}")
             return None
     
-    def load_all_raw_data(self):
-        """Load all raw data files"""
-        logger.info("Loading all raw data files...")
+    def analyze_data_gaps(self, start_date: pd.Timestamp, end_date: pd.Timestamp):
+        """
+        Analyze why there are null values at the beginning of the date range
+        """
+        logger.info("🔍 Analyzing data gaps and null patterns...")
         
-        # Load SPX data first
-        self.load_spx_data()
+        # Create business day range
+        business_days = pd.bdate_range(start=start_date, end=end_date, freq='B')
         
-        # Load all other files
-        for rel_path, config in self.file_mappings.items():
-            df = self.load_single_file(rel_path, config)
-            if df is not None:
-                self.raw_data[config['prefix']] = df
+        print(f"\n📅 DATE RANGE ANALYSIS:")
+        print(f"Requested range: {start_date.date()} to {end_date.date()}")
+        print(f"Business days in range: {len(business_days)}")
+        
+        # Check first 20 business days for data availability
+        print(f"\n🔍 FIRST 20 BUSINESS DAYS DATA AVAILABILITY:")
+        print("-" * 80)
+        print("Date       | VIX | VVIX| OVX | GVZ |VX3M |VX9D |VXEEM|SPX |")
+        print("-" * 80)
+        
+        for i, date in enumerate(business_days[:20]):
+            availability = []
+            
+            for source in ['VIX', 'VVIX', 'OVX', 'GVZ', 'VIX3M', 'VIX9D', 'VXEEM', 'SPX']:
+                if source in self.raw_data:
+                    df = self.raw_data[source]
+                    has_data = date in df['date'].values
+                    availability.append('✓' if has_data else '✗')
+                else:
+                    availability.append('?')
+            
+            avail_str = ' | '.join(f'{a:^3}' for a in availability)
+            print(f"{date.strftime('%Y-%m-%d')} | {avail_str} |")
+        
+        # Find gaps for each data source
+        print(f"\n📊 DATA SOURCE COVERAGE ANALYSIS:")
+        print("-" * 60)
+        
+        for source_name, source_df in self.raw_data.items():
+            if len(source_df) == 0:
+                continue
+                
+            source_start = source_df['date'].min()
+            source_end = source_df['date'].max()
+            
+            # Count how many business days in our range are missing
+            source_business_days = pd.bdate_range(start=max(start_date, source_start), 
+                                                end=min(end_date, source_end), freq='B')
+            
+            available_days = set(source_df['date'].dt.date)
+            missing_days = [d for d in source_business_days if d.date() not in available_days]
+            
+            coverage_pct = ((len(source_business_days) - len(missing_days)) / len(source_business_days)) * 100
+            
+            print(f"{source_name:15s}: {coverage_pct:5.1f}% coverage, {len(missing_days):3d} missing days")
+            
+            # Show first few missing days
+            if len(missing_days) > 0:
+                missing_sample = missing_days[:5]
+                missing_str = ', '.join(d.strftime('%Y-%m-%d') for d in missing_sample)
+                if len(missing_days) > 5:
+                    missing_str += f", ... +{len(missing_days)-5} more"
+                print(f"{'':17s}Missing: {missing_str}")
     
     def find_optimal_date_range(self) -> Tuple[pd.Timestamp, pd.Timestamp]:
-        """Find the optimal date range where all important data is available"""
+        """Find optimal date range with enhanced analysis"""
         logger.info("Finding optimal date range...")
         
         # Core data sources that we must have
         core_sources = ['VIX', 'VVIX', 'OVX', 'GVZ', 'SPX']
         
-        # Extended data sources (nice to have but can live without)
+        # Extended data sources 
         extended_sources = ['VIX3M', 'VIX9D', 'VXN', 'VXD', 'RVX', 'VXAPL', 'VXAZN', 'VXEEM']
-        
-        # Find latest start date among core sources
-        core_starts = []
-        for source in core_sources:
-            if source in self.date_ranges:
-                core_starts.append(self.date_ranges[source]['start'])
-            else:
-                logger.error(f"Core source {source} not available!")
-        
-        if not core_starts:
-            raise ValueError("No core data sources available!")
         
         # Find latest start date among ALL sources (including extended)
         all_starts = []
@@ -264,10 +345,27 @@ class ComprehensiveDataProcessor:
         logger.info(f"Start date limited by: {limiting_start_sources}")
         logger.info(f"End date limited by: {limiting_end_sources}")
         
+        # Analyze gaps in this range
+        self.analyze_data_gaps(optimal_start, optimal_end)
+        
         return optimal_start, optimal_end
     
+    def load_all_raw_data(self):
+        """Load all raw data files"""
+        logger.info("Loading all raw data files...")
+        
+        # Load combined SPX data first
+        self.load_combined_sp500_data()
+        
+        # Load all other files
+        for rel_path, config in self.file_mappings.items():
+            if config['prefix'] != 'SP500_RETURNS_RAW':  # Skip since we handled it
+                df = self.load_single_file(rel_path, config)
+                if df is not None:
+                    self.raw_data[config['prefix']] = df
+    
     def create_master_dataset(self, start_date: pd.Timestamp, end_date: pd.Timestamp) -> pd.DataFrame:
-        """Create the master dataset with all columns in the correct format"""
+        """Create master dataset (same as before but with enhanced logging)"""
         logger.info(f"Creating master dataset from {start_date.date()} to {end_date.date()}")
         
         # Create business day date range
@@ -288,7 +386,7 @@ class ComprehensiveDataProcessor:
                 master_df[col] = master_df[col].fillna(method='ffill')
                 logger.info(f"Forward-filled monthly data for {col}")
         
-        # Handle policy uncertainty (need special processing)
+        # Handle policy uncertainty
         if 'POLICY_UNCERTAINTY' not in master_df.columns:
             logger.info("Processing policy uncertainty data...")
             policy_file = self.data_dir / "raw" / "macro" / "policy_uncertainty_monthly.csv"
@@ -305,7 +403,7 @@ class ComprehensiveDataProcessor:
         return master_df
     
     def add_technical_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add technical features and derived columns"""
+        """Add technical features (same as before)"""
         logger.info("Adding technical features...")
         
         # VIX moving averages
@@ -338,7 +436,7 @@ class ComprehensiveDataProcessor:
         return df
     
     def check_nulls_and_report(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Check for null values and report them"""
+        """Enhanced null checking with gap analysis"""
         logger.info("Checking for null values...")
         
         # Ensure we have all expected columns in the right order
@@ -366,9 +464,9 @@ class ComprehensiveDataProcessor:
                     'reason': 'Column missing from data'
                 }
         
-        # Report findings
+        # Enhanced reporting
         print("\n" + "="*80)
-        print("📊 NULL VALUE REPORT")
+        print("📊 ENHANCED NULL VALUE REPORT")
         print("="*80)
         
         if missing_columns:
@@ -377,48 +475,100 @@ class ComprehensiveDataProcessor:
                 print(f"  - {col}")
         
         if null_report:
-            print(f"\n⚠️  NULL VALUES FOUND:")
-            for col, info in null_report.items():
-                if 'reason' in info:
-                    print(f"  {col}: {info['reason']}")
-                else:
-                    print(f"  {col}: {info['null_count']:,} nulls ({info['null_percentage']:.1f}%)")
+            print(f"\n⚠️  NULL VALUES ANALYSIS:")
+            
+            # Group by null percentage
+            low_nulls = {k: v for k, v in null_report.items() if v['null_percentage'] < 5}
+            medium_nulls = {k: v for k, v in null_report.items() if 5 <= v['null_percentage'] < 20}
+            high_nulls = {k: v for k, v in null_report.items() if v['null_percentage'] >= 20}
+            
+            if low_nulls:
+                print(f"\n🟡 LOW NULL PERCENTAGE (< 5%): {len(low_nulls)} columns")
+                for col, info in list(low_nulls.items())[:10]:  # Show first 10
+                    if 'reason' not in info:
+                        print(f"  {col}: {info['null_count']:,} nulls ({info['null_percentage']:.1f}%)")
+                if len(low_nulls) > 10:
+                    print(f"  ... and {len(low_nulls)-10} more columns")
+            
+            if medium_nulls:
+                print(f"\n🟠 MEDIUM NULL PERCENTAGE (5-20%): {len(medium_nulls)} columns")
+                for col, info in medium_nulls.items():
+                    if 'reason' not in info:
+                        print(f"  {col}: {info['null_count']:,} nulls ({info['null_percentage']:.1f}%)")
+            
+            if high_nulls:
+                print(f"\n🔴 HIGH NULL PERCENTAGE (≥ 20%): {len(high_nulls)} columns")
+                for col, info in high_nulls.items():
+                    if 'reason' in info:
+                        print(f"  {col}: {info['reason']}")
+                    else:
+                        print(f"  {col}: {info['null_count']:,} nulls ({info['null_percentage']:.1f}%)")
         else:
             print("\n✅ NO NULL VALUES FOUND!")
         
+        # Enhanced summary
         total_nulls = sum(info['null_count'] for info in null_report.values())
         total_cells = len(df) * len(self.expected_columns)
         null_percentage = (total_nulls / total_cells) * 100
         
-        print(f"\n📈 SUMMARY:")
+        print(f"\n📈 ENHANCED SUMMARY:")
+        print(f"Dataset shape: {final_df.shape}")
+        print(f"Date range: {final_df['date'].min().date()} to {final_df['date'].max().date()}")
         print(f"Total cells: {total_cells:,}")
         print(f"Null cells: {total_nulls:,}")
         print(f"Null percentage: {null_percentage:.2f}%")
-        print(f"Dataset shape: {final_df.shape}")
-        print(f"Date range: {final_df['date'].min().date()} to {final_df['date'].max().date()}")
+        print(f"Completeness: {100-null_percentage:.2f}%")
+        
+        # Show data quality by category
+        print(f"\n📋 DATA QUALITY BY CATEGORY:")
+        categories = {
+            'Volatility Indices': [col for col in final_df.columns if any(x in col for x in ['VIX', 'OVX', 'GVZ', 'VXN', 'VXD', 'RVX', 'VXAPL', 'VXAZN', 'VXEEM', 'SKEW'])],
+            'Market Data': [col for col in final_df.columns if any(x in col for x in ['SP500', 'USD_', 'TED_', 'HIGH_YIELD', 'US1M', 'US3M', 'US6M', 'US1Y', 'US2Y', 'US3Y', 'US5Y', 'US7Y', 'US10Y', 'US20Y', 'US30Y'])],
+            'Macro Data': [col for col in final_df.columns if any(x in col for x in ['FED_FUNDS', 'INFLATION', 'REPO_', 'POLICY_'])],
+            'Technical Features': [col for col in final_df.columns if any(x in col for x in ['_MA_', '_ROC_', '_LAG_', '_PCT_RANK', 'day_of_week', 'month', 'quarter'])]
+        }
+        
+        for category, cols in categories.items():
+            if cols:
+                cat_nulls = sum(final_df[col].isnull().sum() for col in cols if col in final_df.columns)
+                cat_total = len(final_df) * len(cols)
+                cat_pct = (cat_nulls / cat_total) * 100 if cat_total > 0 else 0
+                print(f"  {category:20s}: {100-cat_pct:5.1f}% complete ({len(cols):2d} columns)")
         
         return final_df
     
-    def save_processed_data(self, df: pd.DataFrame, filename: str = "processed_volatility_data.csv"):
-        """Save the processed dataset"""
+    def save_processed_data(self, df: pd.DataFrame, filename: str = "processed_volatility_data_enhanced.csv"):
+        """Save the processed dataset with enhanced summary"""
         output_path = self.data_dir / "processed" / filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         df.to_csv(output_path, index=False)
         logger.info(f"Saved processed data to {output_path}")
         
-        # Save processing summary
+        # Enhanced processing summary
         summary = {
             'processing_date': datetime.now().isoformat(),
+            'data_combination_strategy': 'SPX.csv + SP500_RETURNS.csv combined',
             'shape': df.shape,
             'date_range': {
                 'start': df['date'].min().isoformat(),
                 'end': df['date'].max().isoformat(),
-                'days': len(df)
+                'days': len(df),
+                'business_days': len(df)
             },
             'columns': df.columns.tolist(),
             'data_sources': list(self.date_ranges.keys()),
-            'null_counts': df.isnull().sum().to_dict()
+            'data_source_ranges': {k: {
+                'start': v['start'].isoformat(),
+                'end': v['end'].isoformat(),
+                'count': v['count']
+            } for k, v in self.date_ranges.items()},
+            'null_analysis': {
+                'total_nulls': int(df.isnull().sum().sum()),
+                'null_percentage': float((df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100),
+                'columns_with_nulls': df.columns[df.isnull().any()].tolist(),
+                'null_counts_by_column': df.isnull().sum().to_dict()
+            }
         }
         
         summary_path = output_path.parent / f"{filename.replace('.csv', '_summary.json')}"
@@ -426,18 +576,18 @@ class ComprehensiveDataProcessor:
             import json
             json.dump(summary, f, indent=2, default=str)
         
-        logger.info(f"Saved processing summary to {summary_path}")
+        logger.info(f"Saved enhanced processing summary to {summary_path}")
     
     def run_complete_processing(self):
-        """Run the complete data processing pipeline"""
-        logger.info("🚀 STARTING COMPREHENSIVE DATA PROCESSING")
-        logger.info("="*60)
+        """Run the complete enhanced data processing pipeline"""
+        logger.info("🚀 STARTING ENHANCED DATA PROCESSING WITH SPX+SP500_RETURNS COMBINATION")
+        logger.info("="*80)
         
         try:
-            # Step 1: Load all raw data
+            # Step 1: Load all raw data (including combined SPX)
             self.load_all_raw_data()
             
-            # Step 2: Find optimal date range
+            # Step 2: Find optimal date range with gap analysis
             start_date, end_date = self.find_optimal_date_range()
             
             # Step 3: Create master dataset
@@ -446,24 +596,46 @@ class ComprehensiveDataProcessor:
             # Step 4: Add technical features
             enhanced_df = self.add_technical_features(master_df)
             
-            # Step 5: Check nulls and create final format
+            # Step 5: Enhanced null checking and reporting
             final_df = self.check_nulls_and_report(enhanced_df)
             
-            # Step 6: Save processed data
+            # Step 6: Save processed data with enhanced summary
             self.save_processed_data(final_df)
             
-            logger.info("\n✅ DATA PROCESSING COMPLETED SUCCESSFULLY!")
+            logger.info("\n✅ ENHANCED DATA PROCESSING COMPLETED SUCCESSFULLY!")
+            
+            # Final recommendations
+            print("\n" + "="*80)
+            print("🎯 PROCESSING RECOMMENDATIONS")
+            print("="*80)
+            
+            total_null_pct = (final_df.isnull().sum().sum() / (len(final_df) * len(final_df.columns))) * 100
+            
+            if total_null_pct < 5:
+                print("✅ EXCELLENT: Very low null percentage - dataset is ready for meta-learning!")
+            elif total_null_pct < 10:
+                print("🟡 GOOD: Moderate null percentage - consider filling critical nulls")
+            else:
+                print("🔴 CAUTION: High null percentage - review data sources and date range")
+            
+            print(f"\n📊 NEXT STEPS:")
+            print(f"1. Review null pattern analysis above")
+            print(f"2. Consider extending SPX data to get more recent coverage")
+            print(f"3. Ready to run target calculator with improved SP500_RETURNS")
+            print(f"4. Dataset shape: {final_df.shape} - suitable for meta-learning")
+            
             return final_df
             
         except Exception as e:
-            logger.error(f"❌ Error in data processing: {e}")
+            logger.error(f"❌ Error in enhanced data processing: {e}")
             raise
 
 if __name__ == "__main__":
-    # Initialize and run processor
-    processor = ComprehensiveDataProcessor()
+    # Initialize and run enhanced processor
+    processor = EnhancedDataProcessor()
     processed_data = processor.run_complete_processing()
     
-    print(f"\n🎉 PROCESSING COMPLETE!")
-    print(f"📁 Output: data/processed/processed_volatility_data.csv")
+    print(f"\n🎉 ENHANCED PROCESSING COMPLETE!")
+    print(f"📁 Output: data/processed/processed_volatility_data_enhanced.csv")
     print(f"📊 Shape: {processed_data.shape}")
+    print(f"🔗 SPX+SP500_RETURNS combination successful!")

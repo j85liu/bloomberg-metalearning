@@ -1,0 +1,11 @@
+{
+  "dataset_shape": [
+    2505,
+    110
+  ],
+  "date_range": "2015-05-27 00:00:00 to 2024-12-31 00:00:00",
+  "total_missing_values": 0,
+  "expected_columns_present": true,
+  "prediction_targets_created": 5,
+  "ohlc_data_preserved": true
+}
