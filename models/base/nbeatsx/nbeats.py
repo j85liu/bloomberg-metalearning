@@ -15,9 +15,9 @@ from functools import partial
 
 from .nbeats_model import NBeats, NBeatsBlock, IdentityBasis, TrendBasis, SeasonalityBasis
 from .nbeats_model import ExogenousBasisInterpretable, ExogenousBasisWavenet, ExogenousBasisTCN
-from utils.nbeatsx.ts_loader import TimeSeriesLoader
-from utils.nbeatsx.losses import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss
-from utils.nbeatsx.metrics import mae, pinball_loss
+from .utils.ts_loader import TimeSeriesLoader
+from .utils.losses import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss
+from .utils.metrics import mae, pinball_loss
 
 def init_weights(module, initialization):
     if type(module) == t.nn.Linear:
