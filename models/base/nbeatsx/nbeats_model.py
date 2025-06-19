@@ -3,7 +3,7 @@ import numpy as np
 import torch as t
 import torch.nn as nn
 from typing import Tuple
-from .tcn import TemporalConvNet
+from tcn import TemporalConvNet
 
 def filter_input_vars(insample_y, insample_x_t, outsample_x_t, t_cols, include_var_dict):
     # This function is specific for the EPF task
@@ -189,10 +189,10 @@ class TrendBasis(nn.Module):
         super().__init__()
         polynomial_size = degree_of_polynomial + 1
         self.backcast_basis = nn.Parameter(
-            t.tensor(np.concatenate([np.power(np.arange(backcast_size, dtype=np.float) / backcast_size, i)[None, :]
+            t.tensor(np.concatenate([np.power(np.arange(backcast_size, dtype=np.float32) / backcast_size, i)[None, :]
                                     for i in range(polynomial_size)]), dtype=t.float32), requires_grad=False)
         self.forecast_basis = nn.Parameter(
-            t.tensor(np.concatenate([np.power(np.arange(forecast_size, dtype=np.float) / forecast_size, i)[None, :]
+            t.tensor(np.concatenate([np.power(np.arange(forecast_size, dtype=np.float32) / forecast_size, i)[None, :]
                                     for i in range(polynomial_size)]), dtype=t.float32), requires_grad=False)
 
     def forward(self, theta: t.Tensor, insample_x_t: t.Tensor, outsample_x_t: t.Tensor) -> Tuple[t.Tensor, t.Tensor]:

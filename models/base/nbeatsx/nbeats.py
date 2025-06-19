@@ -13,11 +13,11 @@ from torch import optim
 from pathlib import Path
 from functools import partial
 
-from .nbeats_model import NBeats, NBeatsBlock, IdentityBasis, TrendBasis, SeasonalityBasis
-from .nbeats_model import ExogenousBasisInterpretable, ExogenousBasisWavenet, ExogenousBasisTCN
-from .utils.ts_loader import TimeSeriesLoader
-from .utils.losses import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss
-from .utils.metrics import mae, pinball_loss
+from nbeats_model import NBeats, NBeatsBlock, IdentityBasis, TrendBasis, SeasonalityBasis
+from nbeats_model import ExogenousBasisInterpretable, ExogenousBasisWavenet, ExogenousBasisTCN
+from utils.ts_loader import TimeSeriesLoader
+from utils.losses import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss
+from utils.metrics import mae, pinball_loss
 
 def init_weights(module, initialization):
     if type(module) == t.nn.Linear:
@@ -207,6 +207,11 @@ class Nbeats(object):
             device = 'cuda' if t.cuda.is_available() else 'cpu'
         self.device = device
 
+        if hasattr(t, 'compile'):
+            self.use_compile = True
+        else:
+            self.use_compile = False
+
         self._is_instantiated = False
 
     def create_stack(self):
@@ -389,7 +394,7 @@ class Nbeats(object):
         return loss_l1
 
     def to_tensor(self, x: np.ndarray) -> t.Tensor:
-        tensor = t.as_tensor(x, dtype=t.float32).to(self.device)
+        tensor = t.tensor(x, dtype=t.float32).to(self.device)
         return tensor
 
     def fit(self, train_ts_loader, val_ts_loader=None, n_iterations=None, verbose=True, eval_steps=1):
@@ -477,9 +482,9 @@ class Nbeats(object):
                     display_string = 'Step: {}, Time: {:03.3f}, Insample {}: {:.5f}'.format(iteration,
                                                                                             time.time()-start,
                                                                                             self.loss,
-                                                                                            training_loss.cpu().data.numpy())
+                                                                                            training_loss.cpu().numpy())
                     self.trajectories['iteration'].append(iteration)
-                    self.trajectories['train_loss'].append(np.float(training_loss.cpu().data.numpy()))
+                    self.trajectories['train_loss'].append(np.float(training_loss.cpu().numpy()))
 
                     if val_ts_loader is not None:
                         loss = self.evaluate_performance(ts_loader=val_ts_loader,
@@ -491,7 +496,7 @@ class Nbeats(object):
                             if loss < best_val_loss:
                                 # Save current model if improves outsample loss
                                 best_state_dict = copy.deepcopy(self.model.state_dict())
-                                best_insample_loss = training_loss.cpu().data.numpy()
+                                best_insample_loss = training_loss.cpu().numpy()
                                 early_stopping_counter = 0
                                 best_val_loss = loss
                             else:
@@ -512,7 +517,7 @@ class Nbeats(object):
         #End of fitting
         if n_iterations >0:
             # This is batch loss!
-            self.final_insample_loss = np.float(training_loss.cpu().data.numpy()) if not break_flag else best_insample_loss
+            self.final_insample_loss = np.float(training_loss.cpu().numpy()) if not break_flag else best_insample_loss
             string = 'Step: {}, Time: {:03.3f}, Insample {}: {:.5f}'.format(iteration,
                                                                             time.time()-start,
                                                                             self.loss,

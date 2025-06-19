@@ -79,8 +79,8 @@ class TimeSeriesDataset(Dataset):
         s_data = []
         meta_data = []
         for i, u_id in enumerate(unique_ids):
-            top_row = np.asscalar(Y_df['unique_id'].searchsorted(u_id, 'left'))
-            bottom_row = np.asscalar(Y_df['unique_id'].searchsorted(u_id, 'right'))
+            top_row = Y_df['unique_id'].searchsorted(u_id, 'left').item()
+            bottom_row = Y_df['unique_id'].searchsorted(u_id, 'right').item()
             serie = Y_df[top_row:bottom_row]['y'].values
             last_ds_i = Y_df[top_row:bottom_row]['ds'].max()
 
