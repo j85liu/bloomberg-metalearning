@@ -4,7 +4,7 @@ import random
 import torch as t
 import copy
 from typing import Optional, List, Dict, Any, Iterator
-from .ts_dataset import TimeSeriesDataset
+from ts_dataset import TimeSeriesDataset
 from collections import defaultdict
 
 
