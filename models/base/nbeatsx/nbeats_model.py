@@ -3,7 +3,7 @@ import numpy as np
 import torch as t
 import torch.nn as nn
 from typing import Tuple
-from src.nbeats.tcn import TemporalConvNet
+from tcn import TemporalConvNet
 
 def filter_input_vars(insample_y, insample_x_t, outsample_x_t, t_cols, include_var_dict):
     # This function is specific for the EPF task
